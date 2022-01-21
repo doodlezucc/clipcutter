@@ -4,6 +4,8 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   dart_vlc
+  desktop_drop
+  libwinmedia
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

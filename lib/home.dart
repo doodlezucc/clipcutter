@@ -36,7 +36,7 @@ class _HomePageState extends State<HomePage> {
         padding: EdgeInsets.all(16),
         children: <Widget>[
           Video(
-            player: player,
+            player: player.video,
             height: 400,
             showControls: false,
           ),
@@ -69,8 +69,8 @@ class _TimelineState extends State<Timeline> {
   @override
   void initState() {
     super.initState();
-    _subs.add(player.positionStream.listen(_onPositionChange));
-    _subs.add(player.playbackStream.listen(_onPlaybackChange));
+    _subs.add(player.video.positionStream.listen(_onPositionChange));
+    _subs.add(player.video.playbackStream.listen(_onPlaybackChange));
     _subs.add(frameStream.listen(_eachFrame));
   }
 
@@ -83,7 +83,7 @@ class _TimelineState extends State<Timeline> {
   }
 
   void _eachFrame(Duration timestamp) {
-    if (player.playback.isPlaying) {
+    if (player.isPlaying) {
       _startTime ??= _time;
       _startTimestamp ??= timestamp;
 
@@ -125,7 +125,7 @@ class _TimelineState extends State<Timeline> {
   }
 
   void _seekTap(double localX) {
-    if (!player.playback.isSeekable || _duration == null) {
+    if (_duration == null) {
       return print('not seekable');
     }
 
@@ -158,7 +158,7 @@ class _TimelineState extends State<Timeline> {
         _seekTap(details.localPosition.dx);
       },
       onSecondaryTap: () {
-        if (player.playback.isPlaying) {
+        if (player.isPlaying) {
           player.pause();
         } else {
           player.play();

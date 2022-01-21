@@ -6,10 +6,15 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 class AudioStream {
+  final File tmpFile;
   final Map json;
   final List<double> rms;
 
-  AudioStream(this.json, this.rms);
+  AudioStream(this.json, this.rms, this.tmpFile);
+
+  Future<void> dispose() async {
+    await tmpFile.delete();
+  }
 }
 
 class MediaAnalysis {
@@ -23,6 +28,7 @@ class MediaAnalysis {
     var json = await _collectJson(['-show_streams', path]);
     Iterable streams = json['streams'];
 
+    await Directory('tmp').create(recursive: true);
     var audioStreams = <AudioStream>[];
 
     for (var stream in streams) {
@@ -30,21 +36,36 @@ class MediaAnalysis {
       if (isAudio) {
         int index = stream['index'];
         print('Analyzing stream $index');
-        var rms = await analyzeAudio(file, stream: index);
-        audioStreams.add(AudioStream(stream, rms));
+
+        var audio = File('tmp/audio$index.' + stream['codec_name']);
+        await extractStream(file, audio, index);
+
+        var rms = await analyzeAudio(audio);
+        audioStreams.add(AudioStream(stream, rms, audio));
       }
     }
 
     return MediaAnalysis(audioStreams);
   }
 
-  static Future<List<double>> analyzeAudio(File file, {int stream = 0}) async {
+  static Future extractStream(File input, File output, int stream) {
+    return _collectLines([
+      '-i',
+      input.path,
+      '-map',
+      '0:$stream',
+      '-y',
+      output.path,
+    ], useFFProbe: false);
+  }
+
+  static Future<List<double>> analyzeAudio(File file) async {
     var path = file.path;
     var rmsLines = await _collectLines([
       '-f',
       'lavfi',
       '-i',
-      'amovie=$path:si=$stream,astats=metadata=1:reset=1',
+      'amovie=$path,astats=metadata=1:reset=1',
       '-show_entries',
       'frame_tags=lavfi.astats.Overall.RMS_level',
       '-of',
@@ -55,24 +76,28 @@ class MediaAnalysis {
     return rms;
   }
 
-  static Future<List<String>> _collectLines(List<String> arguments) async {
+  static Future<List<String>> _collectLines(
+    List<String> arguments, {
+    bool useFFProbe = true,
+  }) async {
     var completer = Completer<List<String>>();
-    var ffprobe = await Process.start('ffprobe', [
+    var process = await Process.start(useFFProbe ? 'ffprobe' : 'ffmpeg', [
       '-v',
       'error',
       ...arguments,
     ]);
     var lines = <String>[];
-    ffprobe.stdout.listen((data) {
+    process.stdout.listen((data) {
       var ls = utf8.decode(data).trim().split('\n');
       lines.addAll(ls);
     });
-    ffprobe.stderr.listen((data) {
-      stderr.add(data);
-      completer.completeError(Error());
+    process.stderr.listen((data) {
+      completer.completeError(utf8.decode(data).trim());
     });
 
-    ffprobe.exitCode.then((value) => completer.complete(lines));
+    process.exitCode.then((value) {
+      if (!completer.isCompleted) completer.complete(lines);
+    });
 
     return completer.future;
   }

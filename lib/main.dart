@@ -1,14 +1,20 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:clipcutter/peaks.dart';
-import 'package:dart_vlc/dart_vlc.dart';
+import 'package:dart_vlc/dart_vlc.dart' as v;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:libwinmedia/libwinmedia.dart' as a;
+import 'package:path/path.dart';
 
 import 'home.dart';
+import 'peaks.dart';
+import 'player.dart';
 
-final player = Player(id: 0);
+final player = MultiStreamPlayer(v.Player(id: 0), [
+  a.Player(id: 1),
+  a.Player(id: 2),
+]);
 var file = File('test/dani.mp4');
 MediaAnalysis? analysis;
 
@@ -16,20 +22,29 @@ final _frameCtrl = StreamController<Duration>.broadcast(sync: true);
 Stream<Duration> get frameStream => _frameCtrl.stream;
 
 void main() {
-  DartVLC.initialize();
+  v.DartVLC.initialize();
+  a.LWM.initialize();
   runApp(const ClipCutterApp());
   SchedulerBinding.instance!
       .addPersistentFrameCallback((ts) => _frameCtrl.add(ts));
 }
 
 Future<void> reloadVideo() async {
-  var source = Media.file(file);
-  player.setVolume(0);
-  player.open(source, autoStart: false);
+  var source = v.Media.file(file);
+  player.video.setVolume(0);
+  player.video.open(source, autoStart: false);
 
   print('analyzing');
   analysis = await MediaAnalysis.analyze(file);
-  print(analysis!.audioStreams.length);
+  var streams = analysis!.audioStreams;
+  print(streams.length);
+
+  for (var i = 0; i < streams.length; i++) {
+    var stream = streams[i];
+
+    player.audio[i]
+        .open([a.Media(uri: 'file://' + absolute(stream.tmpFile.path))]);
+  }
   print('done');
 }
 
