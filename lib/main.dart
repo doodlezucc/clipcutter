@@ -26,6 +26,10 @@ void main() {
       .addPersistentFrameCallback((ts) => _frameCtrl.add(ts));
 }
 
+double div(Duration a, Duration b) {
+  return a.inMilliseconds / b.inMilliseconds;
+}
+
 Future<void> reloadVideo() async {
   player.restartAudio();
   var source = v.Media.file(file);

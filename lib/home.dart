@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:clipcutter/controls.dart';
 import 'package:clipcutter/main.dart';
 import 'package:clipcutter/peaks.dart';
 import 'package:dart_vlc/dart_vlc.dart';
@@ -17,6 +18,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final ctrl = TimelineController();
+
   @override
   void initState() {
     super.initState();
@@ -49,7 +52,7 @@ class _HomePageState extends State<HomePage> {
               showControls: false,
             ),
             SizedBox(height: 8),
-            if (analysis != null) Timeline(),
+            if (analysis != null) Timeline(ctrl),
           ],
         ),
       ),
@@ -62,7 +65,9 @@ class _HomePageState extends State<HomePage> {
 }
 
 class Timeline extends StatefulWidget {
-  const Timeline({Key? key}) : super(key: key);
+  final TimelineController controller;
+
+  const Timeline(this.controller, {Key? key}) : super(key: key);
 
   @override
   _TimelineState createState() => _TimelineState();
@@ -122,16 +127,36 @@ class _TimelineState extends State<Timeline> {
     });
   }
 
+  // remove padding (hardcoded)
+  double get _width => MediaQuery.of(context).size.width - 32;
+
+  double _durationToPixels(Duration dur) {
+    if (player.duration == null) return 0;
+
+    return _width * div(dur, player.duration!);
+  }
+
+  Duration _tapToDuration(double localX, {bool snap = true}) {
+    if (snap) {
+      var cursorX = _durationToPixels(_time);
+      if ((localX - cursorX).abs() < 20) {
+        return _time;
+      }
+    }
+
+    var frac = localX / _width;
+
+    frac = min(max(frac, 0), 1);
+    return player.duration! * frac;
+  }
+
   void _seekTap(double localX) {
     if (player.duration == null) {
       return print('not seekable');
     }
 
-    // remove padding (hardcoded)
-    var frac = localX / (MediaQuery.of(context).size.width - 32);
-    frac = min(max(frac, 0), 1);
     setState(() {
-      var nTime = player.duration! * frac;
+      var nTime = _tapToDuration(localX, snap: false);
       _time = nTime;
       _startTime = null;
       _startTimestamp = null;
@@ -139,21 +164,29 @@ class _TimelineState extends State<Timeline> {
     });
   }
 
+  void _regionTap(double localX) {
+    setState(() {
+      widget.controller.region =
+          Region(_tapToDuration(localX), Duration(seconds: 1));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     var streams = analysis?.audioStreams;
-    var progress = 0.0;
-
-    if (player.duration != null) {
-      progress = _time.inMilliseconds / player.duration!.inMilliseconds;
-    }
 
     return GestureDetector(
       onTapDown: (details) {
         _seekTap(details.localPosition.dx);
       },
-      onPanUpdate: (details) {
+      onHorizontalDragUpdate: (details) {
         _seekTap(details.localPosition.dx);
+      },
+      onScaleUpdate: (details) {
+        _regionTap(details.localFocalPoint.dx);
+      },
+      onSecondaryTapDown: (details) {
+        _regionTap(details.localPosition.dx);
       },
       child: Column(
         children: [
@@ -167,7 +200,8 @@ class _TimelineState extends State<Timeline> {
           SizedBox(height: 8),
           if (streams != null)
             ListView.separated(
-              itemBuilder: (ctx, i) => AudioPeaks(streams[i], progress),
+              itemBuilder: (ctx, i) =>
+                  AudioPeaks(streams[i], _time, widget.controller.region),
               separatorBuilder: (ctx, i) => SizedBox(height: 16),
               itemCount: streams.length,
               shrinkWrap: true,

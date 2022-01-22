@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:clipcutter/controls.dart';
+import 'package:clipcutter/main.dart';
 import 'package:flutter/material.dart';
 
 class AudioStream {
@@ -145,9 +147,11 @@ class MediaAnalysis {
 
 class AudioPeaks extends StatefulWidget {
   final AudioStream stream;
-  final double position;
+  final Duration time;
+  final Region? region;
 
-  const AudioPeaks(this.stream, this.position, {Key? key}) : super(key: key);
+  const AudioPeaks(this.stream, this.time, this.region, {Key? key})
+      : super(key: key);
 
   @override
   _AudioPeaksState createState() => _AudioPeaksState();
@@ -184,23 +188,29 @@ class PeakPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     var rms = peaks.stream.rms;
+    var duration = player.duration;
+    var progress = 0.0;
 
-    var x = peaks.position * size.width;
+    if (duration != null) {
+      progress = peaks.time.inMilliseconds / duration.inMilliseconds;
+
+      var reg = peaks.region;
+      if (reg != null) {
+        paintRegion(
+            div(reg.start, duration), div(reg.length, duration), canvas, size);
+      }
+    }
+
+    var x = progress * size.width;
     canvas.drawLine(Offset(x, 0), Offset(x, size.height), pnt);
 
     if (rms.isEmpty) {
       return canvas.drawLine(
           Offset(0, size.height / 2), Offset(size.width, size.height / 2), pnt);
     }
-    // var points = <Offset>[];
 
     var min = -96.0;
     var max = -0.0;
-    for (var i = 0; i < rms.length; i++) {
-      // var v = stream.rms[i];
-      // if (v > max) max = v;
-      // if (v < min) min = v;
-    }
 
     for (var x = 0.0; x < size.width; x += 4) {
       var v = rms[rms.length * x ~/ size.width];
@@ -209,8 +219,13 @@ class PeakPainter extends CustomPainter {
       canvas.drawLine(Offset(x, size.height * (0.5 + y)),
           Offset(x, size.height * (0.5 - y)), pnt);
     }
+  }
 
-    // canvas.drawPoints(PointMode.polygon, points, Paint()..color = Colors.black);
+  void paintRegion(double start, double length, Canvas canvas, Size size) {
+    var pnt = Paint()..color = Colors.orange;
+    canvas.drawRect(
+        Rect.fromLTWH(start * size.width, 0, length * size.width, size.height),
+        pnt);
   }
 
   @override
