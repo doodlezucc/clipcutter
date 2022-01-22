@@ -31,18 +31,27 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ListView(
-        shrinkWrap: true,
-        padding: EdgeInsets.all(16),
-        children: <Widget>[
-          Video(
-            player: player.video,
-            height: 400,
-            showControls: false,
-          ),
-          SizedBox(height: 8),
-          if (analysis != null) Timeline(),
-        ],
+      body: RawKeyboardListener(
+        autofocus: true,
+        onKey: (ev) {
+          if (ev.character == ' ') {
+            player.togglePlaying();
+          }
+        },
+        focusNode: FocusNode(),
+        child: ListView(
+          shrinkWrap: true,
+          padding: EdgeInsets.all(16),
+          children: <Widget>[
+            Video(
+              player: player.video,
+              height: 400,
+              showControls: false,
+            ),
+            SizedBox(height: 8),
+            if (analysis != null) Timeline(),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _manualReload,
@@ -64,12 +73,10 @@ class _TimelineState extends State<Timeline> {
   Duration _time = Duration.zero;
   Duration? _startTimestamp;
   Duration? _startTime;
-  Duration? _duration;
 
   @override
   void initState() {
     super.initState();
-    _subs.add(player.video.positionStream.listen(_onPositionChange));
     _subs.add(player.video.playbackStream.listen(_onPlaybackChange));
     _subs.add(frameStream.listen(_eachFrame));
   }
@@ -115,17 +122,8 @@ class _TimelineState extends State<Timeline> {
     });
   }
 
-  void _onPositionChange(PositionState state) {
-    setState(() {
-      if (state.duration != null && state.duration! > Duration.zero) {
-        _duration = state.duration;
-      }
-      // _time = state.position!;
-    });
-  }
-
   void _seekTap(double localX) {
-    if (_duration == null) {
+    if (player.duration == null) {
       return print('not seekable');
     }
 
@@ -133,7 +131,7 @@ class _TimelineState extends State<Timeline> {
     var frac = localX / (MediaQuery.of(context).size.width - 32);
     frac = min(max(frac, 0), 1);
     setState(() {
-      var nTime = _duration! * frac;
+      var nTime = player.duration! * frac;
       _time = nTime;
       _startTime = null;
       _startTimestamp = null;
@@ -146,8 +144,8 @@ class _TimelineState extends State<Timeline> {
     var streams = analysis?.audioStreams;
     var progress = 0.0;
 
-    if (_duration != null) {
-      progress = _time.inMilliseconds / _duration!.inMilliseconds;
+    if (player.duration != null) {
+      progress = _time.inMilliseconds / player.duration!.inMilliseconds;
     }
 
     return GestureDetector(
@@ -156,13 +154,6 @@ class _TimelineState extends State<Timeline> {
       },
       onPanUpdate: (details) {
         _seekTap(details.localPosition.dx);
-      },
-      onSecondaryTap: () {
-        if (player.isPlaying) {
-          player.pause();
-        } else {
-          player.play();
-        }
       },
       child: Column(
         children: [

@@ -11,10 +11,7 @@ import 'home.dart';
 import 'peaks.dart';
 import 'player.dart';
 
-final player = MultiStreamPlayer(v.Player(id: 0), [
-  a.Player(id: 1),
-  a.Player(id: 2),
-]);
+final player = MultiStreamPlayer();
 var file = File('test/dani.mp4');
 MediaAnalysis? analysis;
 
@@ -30,6 +27,7 @@ void main() {
 }
 
 Future<void> reloadVideo() async {
+  player.restartAudio();
   var source = v.Media.file(file);
   player.video.setVolume(0);
   player.video.open(source, autoStart: false);
@@ -37,15 +35,14 @@ Future<void> reloadVideo() async {
   print('analyzing');
   analysis = await MediaAnalysis.analyze(file);
   var streams = analysis!.audioStreams;
-  print(streams.length);
 
   for (var i = 0; i < streams.length; i++) {
     var stream = streams[i];
 
-    player.audio[i]
-        .open([a.Media(uri: 'file://' + absolute(stream.tmpFile.path))]);
+    var uri = 'file://' + absolute(stream.tmpFile.path);
+    player.audio[i].open([a.Media(uri: uri)]);
   }
-  print('done');
+  print('analyzed ${streams.length} audio streams');
 }
 
 class ClipCutterApp extends StatelessWidget {

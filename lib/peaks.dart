@@ -18,9 +18,10 @@ class AudioStream {
 }
 
 class MediaAnalysis {
+  final Duration duration;
   final List<AudioStream> audioStreams;
 
-  MediaAnalysis(this.audioStreams);
+  MediaAnalysis(this.duration, this.audioStreams);
 
   static Future<MediaAnalysis> analyze(File file) async {
     var path = file.path;
@@ -28,35 +29,51 @@ class MediaAnalysis {
     var json = await _collectJson(['-show_streams', path]);
     Iterable streams = json['streams'];
 
-    await Directory('tmp').create(recursive: true);
+    var files = await extractStreams(file, streams);
     var audioStreams = <AudioStream>[];
 
     for (var stream in streams) {
       var isAudio = stream['codec_type'] == 'audio';
       if (isAudio) {
         int index = stream['index'];
-        print('Analyzing stream $index');
+        print('analyzing stream $index');
 
-        var audio = File('tmp/audio$index.' + stream['codec_name']);
-        await extractStream(file, audio, index);
-
+        var audio = files[index];
         var rms = await analyzeAudio(audio);
         audioStreams.add(AudioStream(stream, rms, audio));
       }
     }
 
-    return MediaAnalysis(audioStreams);
+    var sec = double.parse(streams.first['duration']);
+    var duration = Duration(milliseconds: (sec * 1000).toInt());
+    return MediaAnalysis(duration, audioStreams);
   }
 
-  static Future extractStream(File input, File output, int stream) {
-    return _collectLines([
+  static Future<List<File>> extractStreams(File input, Iterable streams) async {
+    await Directory('tmp').create(recursive: true);
+
+    var maps = [];
+    var files = <File>[];
+
+    for (var i = 0; i < streams.length; i++) {
+      var stream = streams.elementAt(i);
+      var file = File('tmp/stream$i.' + stream['codec_name']);
+      files.add(file);
+
+      if (stream['codec_type'] == 'audio') {
+        maps.addAll(['-map', '0:$i', file.path]);
+      }
+    }
+
+    print('extracting streams');
+    await _collectLines([
+      '-y',
       '-i',
       input.path,
-      '-map',
-      '0:$stream',
-      '-y',
-      output.path,
+      ...maps,
     ], useFFProbe: false);
+
+    return files;
   }
 
   static Future<List<double>> analyzeAudio(File file) async {
@@ -185,7 +202,7 @@ class PeakPainter extends CustomPainter {
       // if (v < min) min = v;
     }
 
-    for (var x = 0.0; x < size.width; x += 2) {
+    for (var x = 0.0; x < size.width; x += 4) {
       var v = rms[rms.length * x ~/ size.width];
       var y = 0.5 * pow((v - min) / (max - min), 3);
 
