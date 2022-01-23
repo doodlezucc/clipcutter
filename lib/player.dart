@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:clipcutter/controls.dart';
 import 'package:clipcutter/main.dart';
@@ -13,6 +14,25 @@ class MultiStreamPlayer {
   Duration? get duration => analysis?.duration;
   Duration? _seekTime;
   Timer? _timer;
+
+  Future<void> open(String path) async {
+    restartAudio();
+
+    var file = File(path);
+    var source = v.Media.file(file);
+    video.setVolume(0);
+    video.open(source, autoStart: false);
+
+    print('analyzing');
+    analysis = await MediaAnalysis.analyze(file);
+    var streams = analysis!.audioStreams;
+
+    for (var i = 0; i < streams.length; i++) {
+      var stream = streams[i];
+      player.audio[i].openStream(stream);
+    }
+    print('analyzed ${streams.length} audio streams');
+  }
 
   /// Restart audio players to release locks on their media.
   void restartAudio() {

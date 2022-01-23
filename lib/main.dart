@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:dart_vlc/dart_vlc.dart' as v;
 import 'package:flutter/material.dart';
@@ -11,7 +10,6 @@ import 'peaks.dart';
 import 'player.dart';
 
 final player = MultiStreamPlayer();
-var file = File('test/dani.mp4');
 MediaAnalysis? analysis;
 
 final _frameCtrl = StreamController<Duration>.broadcast(sync: true);
@@ -27,23 +25,6 @@ void main() {
 
 double div(Duration a, Duration b) {
   return a.inMilliseconds / b.inMilliseconds;
-}
-
-Future<void> reloadVideo() async {
-  player.restartAudio();
-  var source = v.Media.file(file);
-  player.video.setVolume(0);
-  player.video.open(source, autoStart: false);
-
-  print('analyzing');
-  analysis = await MediaAnalysis.analyze(file);
-  var streams = analysis!.audioStreams;
-
-  for (var i = 0; i < streams.length; i++) {
-    var stream = streams[i];
-    player.audio[i].openStream(stream);
-  }
-  print('analyzed ${streams.length} audio streams');
 }
 
 class ClipCutterApp extends StatelessWidget {

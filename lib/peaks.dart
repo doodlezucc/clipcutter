@@ -5,6 +5,7 @@ import 'package:clipcutter/controls.dart';
 import 'package:clipcutter/ffmpeg.dart';
 import 'package:clipcutter/main.dart';
 import 'package:clipcutter/player.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 class AudioStream {
@@ -91,7 +92,12 @@ class MediaAnalysis {
       'csv=p=0',
     ]);
 
-    var rms = rmsLines.map((line) => double.parse(line)).toList();
+    var rms = rmsLines.map((line) {
+      if (line == '-inf') {
+        return -96.0;
+      }
+      return double.parse(line);
+    }).toList();
     return rms;
   }
 }
@@ -109,8 +115,8 @@ class AudioPeaks extends StatefulWidget {
 }
 
 class _AudioPeaksState extends State<AudioPeaks> {
-  AudioPlayer get aPlayer =>
-      player.audio.firstWhere((a) => a.stream == widget.stream);
+  AudioPlayer? get aPlayer =>
+      player.audio.firstWhereOrNull((a) => a.stream == widget.stream);
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +124,7 @@ class _AudioPeaksState extends State<AudioPeaks> {
       width: 400,
       height: 100,
       decoration: BoxDecoration(
-        color: aPlayer.muted ? Colors.grey[400] : Colors.white,
+        color: (aPlayer?.muted ?? true) ? Colors.grey[400] : Colors.white,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4)],
       ),

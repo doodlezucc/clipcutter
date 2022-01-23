@@ -6,6 +6,8 @@ import 'package:clipcutter/ffmpeg.dart';
 import 'package:clipcutter/main.dart';
 import 'package:clipcutter/peaks.dart';
 import 'package:dart_vlc/dart_vlc.dart';
+import 'package:desktop_drop/desktop_drop.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -24,12 +26,24 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _manualReload();
+    _manualLoad('test/dani.mp4');
   }
 
-  void _manualReload() async {
-    await reloadVideo();
+  void _manualLoad(String path) async {
+    ctrl.region = null;
+    await player.open(path);
     setState(() {});
+  }
+
+  void _openFileDialog() async {
+    var result = await FilePicker.platform.pickFiles(
+      type: FileType.video,
+      allowCompression: false,
+      lockParentWindow: true,
+    );
+    if (result != null) {
+      _manualLoad(result.files.first.path!);
+    }
   }
 
   @override
@@ -53,22 +67,30 @@ class _HomePageState extends State<HomePage> {
           }
         },
         focusNode: FocusNode(),
-        child: ListView(
-          shrinkWrap: true,
-          padding: EdgeInsets.all(16),
-          children: <Widget>[
-            Video(
-              player: player.video,
-              height: 400,
-              showControls: false,
-            ),
-            SizedBox(height: 8),
-            if (analysis != null) Timeline(ctrl),
-          ],
+        child: DropTarget(
+          onDragDone: (details) {
+            if (details.files.isNotEmpty) {
+              var file = details.files.first;
+              _manualLoad(file.path);
+            }
+          },
+          child: ListView(
+            shrinkWrap: true,
+            padding: EdgeInsets.all(16),
+            children: <Widget>[
+              Video(
+                player: player.video,
+                height: 400,
+                showControls: false,
+              ),
+              SizedBox(height: 8),
+              if (analysis != null) Timeline(ctrl),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _manualReload,
+        onPressed: _openFileDialog,
         child: const Icon(Icons.add),
       ),
     );
