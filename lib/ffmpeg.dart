@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:clipcutter/controls.dart';
 import 'package:clipcutter/main.dart';
+import 'package:file_picker/file_picker.dart';
 
 class FFmpeg {
   static Future<List<String>> collectLines(
@@ -54,6 +55,16 @@ class FFmpeg {
     ffprobe.exitCode.then((value) => completer.complete(jsonDecode(output)));
 
     return completer.future;
+  }
+
+  static Future<void> renderDialog(TimelineController timeline) async {
+    var result = await FilePicker.platform.saveFile(
+      lockParentWindow: true,
+      type: FileType.audio,
+    );
+    if (result != null) {
+      return render(timeline, result);
+    }
   }
 
   static Future<void> render(TimelineController timeline, String output) async {

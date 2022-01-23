@@ -48,7 +48,7 @@ class _HomePageState extends State<HomePage> {
               }
               return;
             case 'R':
-              FFmpeg.render(ctrl, 'out.wav');
+              FFmpeg.renderDialog(ctrl);
               return;
           }
         },
