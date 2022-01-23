@@ -78,6 +78,7 @@ class _TimelineState extends State<Timeline> {
   Duration _time = Duration.zero;
   Duration? _startTimestamp;
   Duration? _startTime;
+  bool _dragRegionEnd = false;
 
   @override
   void initState() {
@@ -164,10 +165,28 @@ class _TimelineState extends State<Timeline> {
     });
   }
 
-  void _regionTap(double localX) {
+  void _regionTap(double localX, bool hold) {
     setState(() {
-      widget.controller.region =
-          Region(_tapToDuration(localX), Duration(seconds: 1));
+      var time = _tapToDuration(localX);
+
+      Region? region = widget.controller.region;
+
+      if (region == null) {
+        region = widget.controller.region = Region(time, Duration());
+        _dragRegionEnd = true;
+      } else if (!hold) {
+        var diffStart = (time - region.start).abs();
+        var diffEnd = (time - region.end).abs();
+        _dragRegionEnd = diffEnd < diffStart;
+      }
+
+      if (_dragRegionEnd) {
+        region.end = time;
+      } else {
+        var end = region.end;
+        region.start = time;
+        region.end = end;
+      }
     });
   }
 
@@ -183,10 +202,13 @@ class _TimelineState extends State<Timeline> {
         _seekTap(details.localPosition.dx);
       },
       onScaleUpdate: (details) {
-        _regionTap(details.localFocalPoint.dx);
+        _regionTap(details.localFocalPoint.dx, true);
+      },
+      onScaleStart: (details) {
+        _regionTap(details.localFocalPoint.dx, false);
       },
       onSecondaryTapDown: (details) {
-        _regionTap(details.localPosition.dx);
+        _regionTap(details.localPosition.dx, false);
       },
       child: Column(
         children: [
