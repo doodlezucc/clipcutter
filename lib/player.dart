@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clipcutter/controls.dart';
 import 'package:clipcutter/main.dart';
 import 'package:dart_vlc/dart_vlc.dart' as v;
 import 'package:libwinmedia/libwinmedia.dart' as a;
@@ -30,6 +31,15 @@ class MultiStreamPlayer {
     for (var a in audio) {
       a.play();
     }
+  }
+
+  Future<void> playRegion(Region region) async {
+    _forceSeek(region.start);
+    play();
+    await Future.delayed(region.length);
+    pause();
+    video.playbackController.add(v.PlaybackState()..isPlaying = false);
+    _forceSeek(region.start);
   }
 
   void pause() {

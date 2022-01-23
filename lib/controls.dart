@@ -1,4 +1,6 @@
 class TimelineController {
+  Duration? startTimestamp;
+  Duration? startTime;
   Region? region;
 }
 

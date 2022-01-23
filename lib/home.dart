@@ -38,7 +38,12 @@ class _HomePageState extends State<HomePage> {
         autofocus: true,
         onKey: (ev) {
           if (ev.character == ' ') {
-            player.togglePlaying();
+            if (!player.isPlaying && ctrl.region != null) {
+              ctrl.startTime = ctrl.region!.start;
+              player.playRegion(ctrl.region!);
+            } else {
+              player.togglePlaying();
+            }
           }
         },
         focusNode: FocusNode(),
@@ -74,10 +79,9 @@ class Timeline extends StatefulWidget {
 }
 
 class _TimelineState extends State<Timeline> {
+  static const minRegionLength = Duration(milliseconds: 200);
   final List<StreamSubscription> _subs = [];
   Duration _time = Duration.zero;
-  Duration? _startTimestamp;
-  Duration? _startTime;
   bool _dragRegionEnd = false;
 
   @override
@@ -97,12 +101,12 @@ class _TimelineState extends State<Timeline> {
 
   void _eachFrame(Duration timestamp) {
     if (player.isPlaying) {
-      _startTime ??= _time;
-      _startTimestamp ??= timestamp;
+      widget.controller.startTime ??= _time;
+      widget.controller.startTimestamp ??= timestamp;
 
       setState(() {
-        var diff = timestamp - _startTimestamp!;
-        _time = _startTime! + diff;
+        var diff = timestamp - widget.controller.startTimestamp!;
+        _time = widget.controller.startTime! + diff;
         SchedulerBinding.instance!.scheduleFrame();
       });
     }
@@ -110,20 +114,19 @@ class _TimelineState extends State<Timeline> {
 
   void _onPlaybackChange(PlaybackState state) {
     setState(() {
+      if (!state.isPlaying) {
+        widget.controller.startTime = null;
+        widget.controller.startTimestamp = null;
+      }
+
       if (state.isCompleted) {
+        print(state.isPlaying);
         _time = Duration.zero;
-        _startTime = null;
-        _startTimestamp = null;
         player.seek(Duration.zero);
         setState(() {
           print('restart');
           player.play();
         });
-      }
-
-      if (!state.isPlaying) {
-        _startTime = null;
-        _startTimestamp = null;
       }
     });
   }
@@ -159,8 +162,8 @@ class _TimelineState extends State<Timeline> {
     setState(() {
       var nTime = _tapToDuration(localX, snap: false);
       _time = nTime;
-      _startTime = null;
-      _startTimestamp = null;
+      widget.controller.startTime = null;
+      widget.controller.startTimestamp = null;
       player.seek(nTime);
     });
   }
@@ -181,9 +184,13 @@ class _TimelineState extends State<Timeline> {
       }
 
       if (_dragRegionEnd) {
+        var limit = region.start + minRegionLength;
+        if (time < limit) time = limit;
         region.end = time;
       } else {
         var end = region.end;
+        var limit = region.end - minRegionLength;
+        if (time > limit) time = limit;
         region.start = time;
         region.end = end;
       }
