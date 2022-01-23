@@ -2,17 +2,17 @@ import 'dart:async';
 
 import 'package:clipcutter/controls.dart';
 import 'package:clipcutter/main.dart';
+import 'package:clipcutter/peaks.dart';
 import 'package:dart_vlc/dart_vlc.dart' as v;
 import 'package:libwinmedia/libwinmedia.dart' as a;
+import 'package:path/path.dart';
 
 class MultiStreamPlayer {
   v.Player video = v.Player(id: 0);
-  List<a.Player> audio = [];
+  List<AudioPlayer> audio = [];
   Duration? get duration => analysis?.duration;
   Duration? _seekTime;
   Timer? _timer;
-
-  MultiStreamPlayer();
 
   /// Restart audio players to release locks on their media.
   void restartAudio() {
@@ -21,8 +21,8 @@ class MultiStreamPlayer {
     }
 
     audio = [
-      a.Player(id: 1),
-      a.Player(id: 2),
+      AudioPlayer(id: 1),
+      AudioPlayer(id: 2),
     ];
   }
 
@@ -83,4 +83,32 @@ class MultiStreamPlayer {
   }
 
   bool get isPlaying => video.playback.isPlaying;
+}
+
+class AudioPlayer extends a.Player {
+  AudioStream? _stream;
+  AudioStream? get stream => _stream;
+
+  double _bufferedVolume = 0;
+  bool _muted = false;
+  bool get muted => _muted;
+
+  set muted(bool muted) {
+    if (muted && !_muted) {
+      _bufferedVolume = volume;
+      volume = 0;
+    } else if (!muted && _muted) {
+      volume = _bufferedVolume;
+    }
+    _muted = muted;
+  }
+
+  AudioPlayer({required int id}) : super(id: id);
+
+  void openStream(AudioStream stream) {
+    _stream = stream;
+
+    var uri = 'file://' + absolute(stream.tmpFile.path);
+    open([a.Media(uri: uri)]);
+  }
 }

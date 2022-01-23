@@ -1,10 +1,10 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:clipcutter/controls.dart';
+import 'package:clipcutter/ffmpeg.dart';
 import 'package:clipcutter/main.dart';
+import 'package:clipcutter/player.dart';
 import 'package:flutter/material.dart';
 
 class AudioStream {
@@ -28,7 +28,7 @@ class MediaAnalysis {
   static Future<MediaAnalysis> analyze(File file) async {
     var path = file.path;
 
-    var json = await _collectJson(['-show_streams', path]);
+    var json = await FFmpeg.collectJson(['-show_streams', path]);
     Iterable streams = json['streams'];
 
     var files = await extractStreams(file, streams);
@@ -68,7 +68,7 @@ class MediaAnalysis {
     }
 
     print('extracting streams');
-    await _collectLines([
+    await FFmpeg.collectLines([
       '-y',
       '-i',
       input.path,
@@ -80,7 +80,7 @@ class MediaAnalysis {
 
   static Future<List<double>> analyzeAudio(File file) async {
     var path = file.path;
-    var rmsLines = await _collectLines([
+    var rmsLines = await FFmpeg.collectLines([
       '-f',
       'lavfi',
       '-i',
@@ -93,55 +93,6 @@ class MediaAnalysis {
 
     var rms = rmsLines.map((line) => double.parse(line)).toList();
     return rms;
-  }
-
-  static Future<List<String>> _collectLines(
-    List<String> arguments, {
-    bool useFFProbe = true,
-  }) async {
-    var completer = Completer<List<String>>();
-    var process = await Process.start(useFFProbe ? 'ffprobe' : 'ffmpeg', [
-      '-v',
-      'error',
-      ...arguments,
-    ]);
-    var lines = <String>[];
-    process.stdout.listen((data) {
-      var ls = utf8.decode(data).trim().split('\n');
-      lines.addAll(ls);
-    });
-    process.stderr.listen((data) {
-      completer.completeError(utf8.decode(data).trim());
-    });
-
-    process.exitCode.then((value) {
-      if (!completer.isCompleted) completer.complete(lines);
-    });
-
-    return completer.future;
-  }
-
-  static Future<Map> _collectJson(List<String> arguments) async {
-    var completer = Completer<Map>();
-    var ffprobe = await Process.start('ffprobe', [
-      '-v',
-      'error',
-      '-of',
-      'json=c=1',
-      ...arguments,
-    ]);
-    var output = '';
-    ffprobe.stdout.listen((data) {
-      output += utf8.decode(data);
-    });
-    ffprobe.stderr.listen((data) {
-      stderr.add(data);
-      completer.completeError(Error());
-    });
-
-    ffprobe.exitCode.then((value) => completer.complete(jsonDecode(output)));
-
-    return completer.future;
   }
 }
 
@@ -158,13 +109,16 @@ class AudioPeaks extends StatefulWidget {
 }
 
 class _AudioPeaksState extends State<AudioPeaks> {
+  AudioPlayer get aPlayer =>
+      player.audio.firstWhere((a) => a.stream == widget.stream);
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 400,
       height: 100,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: aPlayer.muted ? Colors.grey[400] : Colors.white,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4)],
       ),
@@ -222,7 +176,7 @@ class PeakPainter extends CustomPainter {
   }
 
   void paintRegion(double start, double length, Canvas canvas, Size size) {
-    var pnt = Paint()..color = Colors.orange;
+    var pnt = Paint()..color = Colors.blue[300]!.withAlpha(150);
     canvas.drawRect(
         Rect.fromLTWH(start * size.width, 0, length * size.width, size.height),
         pnt);

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:clipcutter/controls.dart';
+import 'package:clipcutter/ffmpeg.dart';
 import 'package:clipcutter/main.dart';
 import 'package:clipcutter/peaks.dart';
 import 'package:dart_vlc/dart_vlc.dart';
@@ -37,13 +38,18 @@ class _HomePageState extends State<HomePage> {
       body: RawKeyboardListener(
         autofocus: true,
         onKey: (ev) {
-          if (ev.character == ' ') {
-            if (!player.isPlaying && ctrl.region != null) {
-              ctrl.startTime = ctrl.region!.start;
-              player.playRegion(ctrl.region!);
-            } else {
-              player.togglePlaying();
-            }
+          switch (ev.character) {
+            case ' ':
+              if (!player.isPlaying && ctrl.region != null) {
+                ctrl.startTime = ctrl.region!.start;
+                player.playRegion(ctrl.region!);
+              } else {
+                player.togglePlaying();
+              }
+              return;
+            case 'R':
+              FFmpeg.render(ctrl, 'out.wav');
+              return;
           }
         },
         focusNode: FocusNode(),
@@ -203,6 +209,14 @@ class _TimelineState extends State<Timeline> {
 
     return GestureDetector(
       onTapDown: (details) {
+        var y = details.localPosition.dy;
+        if (y < 105) {
+          player.audio[0].muted = false;
+          player.audio[1].muted = true;
+        } else {
+          player.audio[0].muted = true;
+          player.audio[1].muted = false;
+        }
         _seekTap(details.localPosition.dx);
       },
       onHorizontalDragUpdate: (details) {

@@ -5,7 +5,6 @@ import 'package:dart_vlc/dart_vlc.dart' as v;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:libwinmedia/libwinmedia.dart' as a;
-import 'package:path/path.dart';
 
 import 'home.dart';
 import 'peaks.dart';
@@ -42,9 +41,7 @@ Future<void> reloadVideo() async {
 
   for (var i = 0; i < streams.length; i++) {
     var stream = streams[i];
-
-    var uri = 'file://' + absolute(stream.tmpFile.path);
-    player.audio[i].open([a.Media(uri: uri)]);
+    player.audio[i].openStream(stream);
   }
   print('analyzed ${streams.length} audio streams');
 }
