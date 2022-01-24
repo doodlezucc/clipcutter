@@ -188,8 +188,15 @@ class PeakPainter extends CustomPainter {
     var max = -0.0;
 
     for (var x = 0.0; x < size.width; x += 4) {
-      var i = div(visible.start + visible.length * (x / size.width), duration!);
-      var v = rms[(rms.length * i).toInt()];
+      var i = rms.length *
+          div(visible.start + visible.length * (x / size.width), duration!);
+      var mix = i % 1.0;
+
+      var v = rms[i.floor()];
+      if (i + 1 < rms.length) {
+        var v2 = rms[i.floor() + 1];
+        v = v + mix * (v2 - v);
+      }
       var y = 0.5 * pow((v - min) / (max - min), 3);
 
       canvas.drawLine(Offset(x, size.height * (0.5 + y)),
