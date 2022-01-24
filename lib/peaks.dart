@@ -53,6 +53,8 @@ class MediaAnalysis {
     return MediaAnalysis(duration, audioStreams);
   }
 
+  // old: 4067ms per 3 minutes
+  // new:  150ms per 3 minutes
   static Future<List<File>> extractStreams(File input, Iterable streams) async {
     await Directory('tmp').create(recursive: true);
 
@@ -65,11 +67,10 @@ class MediaAnalysis {
       files.add(file);
 
       if (stream['codec_type'] == 'audio') {
-        maps.addAll(['-map', '0:$i', file.path]);
+        maps.addAll(['-map', '0:$i', '-c', 'copy', file.path]);
       }
     }
 
-    print('extracting streams');
     await FFmpeg.collectLines([
       '-y',
       '-i',
@@ -80,13 +81,24 @@ class MediaAnalysis {
     return files;
   }
 
+  // old: 4300ms per 3 minutes
+  // new:  680ms per 3 minutes
   static Future<List<double>> analyzeAudio(File file) async {
     var path = file.path;
+
+    var astatsArgs = [
+      'metadata=1',
+      'reset=1',
+      'measure_overall=RMS_level',
+      'measure_perchannel=none',
+    ];
+    var astatsString = astatsArgs.join(':');
+
     var rmsLines = await FFmpeg.collectLines([
       '-f',
       'lavfi',
       '-i',
-      'amovie=$path,astats=metadata=1:reset=1',
+      'amovie=$path,astats=$astatsString',
       '-show_entries',
       'frame_tags=lavfi.astats.Overall.RMS_level',
       '-of',
