@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:clipcutter/controls.dart';
 import 'package:clipcutter/main.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart';
 
 class FFmpeg {
   static Future<List<String>> collectLines(
@@ -52,24 +53,31 @@ class FFmpeg {
       completer.completeError(Error());
     });
 
-    ffprobe.exitCode.then((value) => completer.complete(jsonDecode(output)));
+    ffprobe.exitCode.then((value) {
+      if (!completer.isCompleted) completer.complete(jsonDecode(output));
+    });
 
     return completer.future;
   }
 
-  static Future<void> renderDialog(TimelineController timeline) async {
+  static Future<String?> renderDialog(TimelineController timeline) async {
     var result = await FilePicker.platform.saveFile(
       lockParentWindow: true,
       type: FileType.audio,
     );
     if (result != null) {
-      return render(timeline, result);
+      await render(timeline, result);
+      return result;
     }
   }
 
   static Future<void> render(TimelineController timeline, String output) async {
     var region = timeline.region;
     if (region == null) return print('No region in timeline.');
+
+    if (extension(output).isEmpty) {
+      output += '.wav';
+    }
 
     var stream = player.audio.firstWhere((a) => !a.muted).stream!;
     int streamIndex = stream.json['index'];
@@ -87,7 +95,6 @@ class FFmpeg {
       output,
     ];
 
-    var lines = await collectLines(args, useFFProbe: false);
-    print(lines.join('\n'));
+    await collectLines(args, useFFProbe: false);
   }
 }

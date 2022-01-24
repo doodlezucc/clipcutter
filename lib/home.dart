@@ -46,6 +46,25 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _render() async {
+    var s = await FFmpeg.renderDialog(ctrl);
+    showDialog(
+        context: context,
+        builder: (ctx) {
+          return AlertDialog(
+            content: Text('Exported to $s'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                },
+                child: Text('OK'),
+              )
+            ],
+          );
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,8 +81,7 @@ class _HomePageState extends State<HomePage> {
               }
               return;
             case 'R':
-              FFmpeg.renderDialog(ctrl);
-              return;
+              return _render();
           }
         },
         focusNode: FocusNode(),
@@ -74,18 +92,21 @@ class _HomePageState extends State<HomePage> {
               _manualLoad(file.path);
             }
           },
-          child: ListView(
-            shrinkWrap: true,
-            padding: EdgeInsets.all(16),
-            children: <Widget>[
-              Video(
-                player: player.video,
-                height: 400,
-                showControls: false,
-              ),
-              SizedBox(height: 8),
-              if (analysis != null) Timeline(ctrl),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Expanded(
+                  child: Video(
+                    player: player.video,
+                    showControls: false,
+                  ),
+                ),
+                SizedBox(height: 8),
+                if (analysis != null) Timeline(ctrl),
+              ],
+            ),
           ),
         ),
       ),
