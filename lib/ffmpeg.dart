@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:clipcutter/controls.dart';
+import 'package:clipcutter/prefs.dart';
 import 'package:clipcutter/main.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart';
@@ -13,6 +14,7 @@ class FFmpeg {
     List<String> arguments, {
     bool useFFProbe = true,
   }) async {
+    Prefs.resetCWD();
     var completer = Completer<List<String>>();
     var process = await Process.start(useFFProbe ? 'ffprobe' : 'ffmpeg', [
       '-v',
@@ -36,6 +38,7 @@ class FFmpeg {
   }
 
   static Future<Map> collectJson(List<String> arguments) async {
+    Prefs.resetCWD();
     var completer = Completer<Map>();
     var ffprobe = await Process.start('ffprobe', [
       '-v',
@@ -65,16 +68,20 @@ class FFmpeg {
       dialogTitle: 'Export Clip',
       lockParentWindow: true,
       type: FileType.audio,
+      initialDirectory: Prefs.export,
     );
     if (result != null) {
-      await render(timeline, result);
+      result = await render(timeline, result);
+      Prefs.export = dirname(result);
+      Prefs.save();
       return result;
     }
   }
 
-  static Future<void> render(TimelineController timeline, String output) async {
+  static Future<String> render(
+      TimelineController timeline, String output) async {
     var region = timeline.clip;
-    if (region == null) return print('No region in timeline.');
+    if (region == null) throw 'No region in timeline.';
 
     if (extension(output).isEmpty) {
       output += '.wav';
@@ -83,15 +90,13 @@ class FFmpeg {
     var stream = player.audio.firstWhere((a) => !a.muted).stream!;
     int streamIndex = stream.json['index'];
 
-    var input = absolute(player.video.current.media!.resource);
-
     var args = [
       '-ss',
       '${region.start}',
       '-to',
       '${region.end}',
       '-i',
-      input,
+      player.video.current.media!.resource,
       '-map',
       '0:$streamIndex',
       '-y',
@@ -99,5 +104,6 @@ class FFmpeg {
     ];
 
     await collectLines(args, useFFProbe: false);
+    return output;
   }
 }

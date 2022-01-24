@@ -5,6 +5,7 @@ import 'package:clipcutter/controls.dart';
 import 'package:clipcutter/ffmpeg.dart';
 import 'package:clipcutter/main.dart';
 import 'package:clipcutter/peaks.dart';
+import 'package:clipcutter/prefs.dart';
 import 'package:dart_vlc/dart_vlc.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
@@ -94,9 +95,13 @@ class _HomePageState extends State<HomePage> {
       type: FileType.video,
       allowCompression: false,
       lockParentWindow: true,
+      initialDirectory: Prefs.import,
     );
     if (result != null) {
-      _manualLoad(result.files.first.path!);
+      var path = result.files.first.path!;
+      _manualLoad(path);
+      Prefs.import = p.dirname(path);
+      Prefs.save();
     }
   }
 

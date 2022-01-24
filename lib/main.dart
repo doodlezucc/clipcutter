@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clipcutter/prefs.dart';
 import 'package:dart_vlc/dart_vlc.dart' as v;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -18,6 +19,7 @@ Stream<Duration> get frameStream => _frameCtrl.stream;
 void main() {
   v.DartVLC.initialize();
   a.LWM.initialize();
+  Prefs.load();
   runApp(const ClipCutterApp());
   SchedulerBinding.instance!
       .addPersistentFrameCallback((ts) => _frameCtrl.add(ts));
