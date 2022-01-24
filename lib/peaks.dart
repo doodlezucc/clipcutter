@@ -118,9 +118,9 @@ class MediaAnalysis {
 class AudioPeaks extends StatefulWidget {
   final AudioStream stream;
   final Duration time;
-  final Region? region;
+  final TimelineController ctrl;
 
-  const AudioPeaks(this.stream, this.time, this.region, {Key? key})
+  const AudioPeaks(this.stream, this.time, this.ctrl, {Key? key})
       : super(key: key);
 
   @override
@@ -155,6 +155,8 @@ class PeakPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    var reg = peaks.ctrl.clip;
+    var visible = peaks.ctrl.visible;
     var pnt = Paint()
       ..color = Colors.grey[900]!
       ..strokeWidth = 2
@@ -165,12 +167,12 @@ class PeakPainter extends CustomPainter {
     var progress = 0.0;
 
     if (duration != null) {
-      progress = peaks.time.inMilliseconds / duration.inMilliseconds;
+      progress = div(peaks.time - visible.start, visible.length);
 
-      var reg = peaks.region;
       if (reg != null) {
-        paintRegion(
-            div(reg.start, duration), div(reg.length, duration), canvas, size);
+        var x = div(reg.start - visible.start, visible.length);
+        var w = div(reg.length, visible.length);
+        paintRegion(x, w, canvas, size);
       }
     }
 
@@ -186,7 +188,8 @@ class PeakPainter extends CustomPainter {
     var max = -0.0;
 
     for (var x = 0.0; x < size.width; x += 4) {
-      var v = rms[rms.length * x ~/ size.width];
+      var i = div(visible.start + visible.length * (x / size.width), duration!);
+      var v = rms[(rms.length * i).toInt()];
       var y = 0.5 * pow((v - min) / (max - min), 3);
 
       canvas.drawLine(Offset(x, size.height * (0.5 + y)),

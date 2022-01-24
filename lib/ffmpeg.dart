@@ -73,7 +73,7 @@ class FFmpeg {
   }
 
   static Future<void> render(TimelineController timeline, String output) async {
-    var region = timeline.region;
+    var region = timeline.clip;
     if (region == null) return print('No region in timeline.');
 
     if (extension(output).isEmpty) {
@@ -83,13 +83,15 @@ class FFmpeg {
     var stream = player.audio.firstWhere((a) => !a.muted).stream!;
     int streamIndex = stream.json['index'];
 
+    var input = absolute(player.video.current.media!.resource);
+
     var args = [
       '-ss',
       '${region.start}',
       '-to',
       '${region.end}',
       '-i',
-      player.video.current.media!.resource,
+      input,
       '-map',
       '0:$streamIndex',
       '-y',

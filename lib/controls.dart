@@ -1,7 +1,8 @@
 class TimelineController {
   Duration? startTimestamp;
   Duration? startTime;
-  Region? region;
+  Region? clip;
+  Region visible = Region(Duration.zero, Duration(seconds: 1));
   bool ready = false;
 }
 
