@@ -61,26 +61,30 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _manualLoad('test/dani.mp4');
+    _manualLoad('test/dani.mp4', dialog: false);
   }
 
-  void _manualLoad(String path) async {
+  void _manualLoad(String path, {bool dialog = true}) async {
     ctrl.region = null;
     var sctrl = StreamController<String>();
+    BuildContext? ctx;
 
-    late BuildContext ctx;
-    showDialog(
-        context: context,
-        builder: (context) {
-          ctx = context;
-          return LoadingDialog(p.basename(path), sctrl.stream);
-        });
+    if (dialog) {
+      showDialog(
+          context: context,
+          builder: (context) {
+            ctx = context;
+            return LoadingDialog(p.basename(path), sctrl.stream);
+          });
+    }
 
     ctrl.ready = false;
     await player.open(path, sctrl.add);
     ctrl.ready = true;
 
-    Navigator.pop(ctx);
+    if (ctx != null) {
+      Navigator.pop(ctx!);
+    }
     setState(() {});
   }
 
@@ -97,6 +101,7 @@ class _HomePageState extends State<HomePage> {
 
   void _render() async {
     var s = await FFmpeg.renderDialog(ctrl);
+    if (s == null) return;
     showDialog(
         context: context,
         builder: (ctx) {
@@ -116,6 +121,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    double videoAspectRatio = 1920 / 1080;
+
+    if (player.video.videoDimensions.width > 0) {
+      videoAspectRatio = player.video.videoDimensions.width /
+          player.video.videoDimensions.height;
+    }
+
     return Scaffold(
       body: RawKeyboardListener(
         autofocus: true,
@@ -144,12 +156,13 @@ class _HomePageState extends State<HomePage> {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 Expanded(
-                  child: Video(
-                    player: player.video,
-                    showControls: false,
+                  child: AspectRatio(
+                    aspectRatio: videoAspectRatio,
+                    child: Video(player: player.video, showControls: false),
                   ),
                 ),
                 SizedBox(height: 8),
@@ -198,7 +211,7 @@ class _TimelineState extends State<Timeline> {
   }
 
   void _eachFrame(Duration timestamp) {
-    if (player.isPlaying) {
+    if (player.isPlaying && widget.controller.ready) {
       widget.controller.startTime ??= _time;
       widget.controller.startTimestamp ??= timestamp;
 
