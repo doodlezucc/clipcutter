@@ -26,7 +26,8 @@ class MediaAnalysis {
 
   MediaAnalysis(this.duration, this.audioStreams);
 
-  static Future<MediaAnalysis> analyze(File file) async {
+  static Future<MediaAnalysis> analyze(
+      File file, void Function(String) onProgress) async {
     var path = file.path;
 
     var json = await FFmpeg.collectJson(['-show_streams', path]);
@@ -39,7 +40,7 @@ class MediaAnalysis {
       var isAudio = stream['codec_type'] == 'audio';
       if (isAudio) {
         int index = stream['index'];
-        print('analyzing stream $index');
+        onProgress('Analyzing audio stream $index...');
 
         var audio = files[index];
         var rms = await analyzeAudio(audio);

@@ -10,6 +10,41 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:path/path.dart' as p;
+
+class LoadingDialog extends StatefulWidget {
+  final String srcName;
+  final Stream<String> stream;
+
+  const LoadingDialog(this.srcName, this.stream, {Key? key}) : super(key: key);
+
+  @override
+  _LoadingDialogState createState() => _LoadingDialogState();
+}
+
+class _LoadingDialogState extends State<LoadingDialog> {
+  String message = 'Extracting streams...';
+
+  @override
+  void initState() {
+    super.initState();
+    widget.stream.listen((msg) {
+      if (mounted) {
+        setState(() {
+          message = msg;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Loading "${widget.srcName}"'),
+      content: Text(message),
+    );
+  }
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key, required this.title}) : super(key: key);
@@ -31,7 +66,21 @@ class _HomePageState extends State<HomePage> {
 
   void _manualLoad(String path) async {
     ctrl.region = null;
-    await player.open(path);
+    var sctrl = StreamController<String>();
+
+    late BuildContext ctx;
+    showDialog(
+        context: context,
+        builder: (context) {
+          ctx = context;
+          return LoadingDialog(p.basename(path), sctrl.stream);
+        });
+
+    ctrl.ready = false;
+    await player.open(path, sctrl.add);
+    ctrl.ready = true;
+
+    Navigator.pop(ctx);
     setState(() {});
   }
 
@@ -162,18 +211,17 @@ class _TimelineState extends State<Timeline> {
   }
 
   void _onPlaybackChange(PlaybackState state) {
+    if (!widget.controller.ready) return;
     setState(() {
-      if (!state.isPlaying) {
+      if (!state.isPlaying || state.isCompleted) {
         widget.controller.startTime = null;
         widget.controller.startTimestamp = null;
       }
 
       if (state.isCompleted) {
-        print(state.isPlaying);
         _time = Duration.zero;
         player.seek(Duration.zero);
         setState(() {
-          print('restart');
           player.play();
         });
       }

@@ -15,16 +15,21 @@ class MultiStreamPlayer {
   Duration? _seekTime;
   Timer? _timer;
 
-  Future<void> open(String path) async {
+  Future<void> open(String path, void Function(String) onProgress) async {
     restartAudio();
 
     var file = File(path);
     var source = v.Media.file(file);
     video.setVolume(0);
     video.open(source, autoStart: false);
+    video.play();
 
     print('analyzing');
-    analysis = await MediaAnalysis.analyze(file);
+    analysis = await MediaAnalysis.analyze(file, onProgress);
+
+    video.pause();
+    video.seek(Duration.zero);
+
     var streams = analysis!.audioStreams;
 
     for (var i = 0; i < streams.length; i++) {

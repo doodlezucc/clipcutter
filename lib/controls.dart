@@ -2,6 +2,7 @@ class TimelineController {
   Duration? startTimestamp;
   Duration? startTime;
   Region? region;
+  bool ready = false;
 }
 
 class Region {
