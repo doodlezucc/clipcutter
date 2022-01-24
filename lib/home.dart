@@ -90,6 +90,7 @@ class _HomePageState extends State<HomePage> {
 
   void _openFileDialog() async {
     var result = await FilePicker.platform.pickFiles(
+      dialogTitle: 'Open Video',
       type: FileType.video,
       allowCompression: false,
       lockParentWindow: true,
@@ -129,6 +130,27 @@ class _HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Clipcutter'),
+        centerTitle: true,
+        leadingWidth: 80,
+        toolbarHeight: 48,
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: _openFileDialog,
+              icon: Icon(Icons.folder_open),
+              tooltip: 'Open Video',
+            ),
+            IconButton(
+              onPressed: _render,
+              icon: Icon(Icons.movie_creation),
+              tooltip: 'Export Clip',
+            ),
+          ],
+        ),
+      ),
       body: RawKeyboardListener(
         autofocus: true,
         onKey: (ev) {
@@ -171,10 +193,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openFileDialog,
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -250,7 +268,7 @@ class _TimelineState extends State<Timeline> {
     return _width * div(dur, player.duration!);
   }
 
-  Duration _tapToDuration(double localX, {bool snap = true}) {
+  Duration _tapToDuration(double localX, {bool snap = false}) {
     if (snap) {
       var cursorX = _durationToPixels(_time);
       if ((localX - cursorX).abs() < 20) {

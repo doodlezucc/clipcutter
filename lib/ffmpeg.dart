@@ -62,6 +62,7 @@ class FFmpeg {
 
   static Future<String?> renderDialog(TimelineController timeline) async {
     var result = await FilePicker.platform.saveFile(
+      dialogTitle: 'Export Clip',
       lockParentWindow: true,
       type: FileType.audio,
     );

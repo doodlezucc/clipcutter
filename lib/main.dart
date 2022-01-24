@@ -38,6 +38,7 @@ class ClipCutterApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: const HomePage(title: 'Clip Cutter'),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
