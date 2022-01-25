@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:clipcutter/controls.dart';
 import 'package:clipcutter/ffmpeg.dart';
@@ -56,13 +57,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ctrl = TimelineController();
-  bool _showDrop = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _manualLoad('test/dani.mp4', dialog: false);
-  }
+  bool _dragDropping = false;
+  bool _init = false;
 
   void _manualLoad(String path, {bool dialog = true}) async {
     ctrl.clip = null;
@@ -77,6 +73,8 @@ class _HomePageState extends State<HomePage> {
             return LoadingDialog(p.basename(path), sctrl.stream);
           });
     }
+
+    setState(() => _init = true);
 
     ctrl.ready = false;
     await player.open(path, sctrl.add);
@@ -176,20 +174,20 @@ class _HomePageState extends State<HomePage> {
         focusNode: FocusNode(),
         child: DropTarget(
           onDragDone: (details) {
+            setState(() => _dragDropping = false);
             if (details.files.isNotEmpty) {
               var file = details.files.first;
               _manualLoad(file.path);
             }
           },
           onDragEntered: (details) {
-            setState(() => _showDrop = true);
+            setState(() => _dragDropping = true);
           },
           onDragExited: (details) {
-            setState(() => _showDrop = false);
+            setState(() => _dragDropping = false);
           },
           child: Stack(
             children: [
-              if (_showDrop) DropZone(),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -198,8 +196,13 @@ class _HomePageState extends State<HomePage> {
                       child: Center(
                         child: AspectRatio(
                           aspectRatio: videoAspectRatio,
-                          child:
-                              Video(player: player.video, showControls: false),
+                          child: Opacity(
+                            opacity: _init ? 1 : 0,
+                            child: Video(
+                              player: player.video,
+                              showControls: false,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -208,6 +211,7 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
+              DropZone(_dragDropping || !_init, _dragDropping),
             ],
           ),
         ),
@@ -217,12 +221,115 @@ class _HomePageState extends State<HomePage> {
 }
 
 class DropZone extends StatelessWidget {
-  const DropZone({Key? key}) : super(key: key);
+  final bool show;
+  final bool dropping;
+
+  const DropZone(this.show, this.dropping, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white54,
+    return IgnorePointer(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: 0, end: dropping ? 4 : 0),
+        duration: DropZoneCorner.transition,
+        curve: DropZoneCorner.transitionCurve,
+        builder: (ctx, value, child) => BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: value, sigmaY: value),
+          child: child,
+        ),
+        child: AnimatedOpacity(
+          opacity: show ? 1 : 0,
+          duration: DropZoneCorner.transition,
+          curve: DropZoneCorner.transitionCurve,
+          child: Container(
+            color: Colors.white70,
+            child: Stack(
+              children: [
+                Center(
+                  child: AnimatedScale(
+                    duration: DropZoneCorner.transition,
+                    curve: DropZoneCorner.transitionCurve,
+                    scale: dropping ? 1.1 : 1,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Drag & Drop Videos Here',
+                          style: Theme.of(context).textTheme.headline4,
+                        ),
+                        Text('(or press Ctrl+O)'),
+                      ],
+                    ),
+                  ),
+                ),
+                DropZoneCorner(dropping, false, false),
+                DropZoneCorner(dropping, false, true),
+                DropZoneCorner(dropping, true, false),
+                DropZoneCorner(dropping, true, true),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DropZoneCorner extends StatelessWidget {
+  static const padding = 16.0;
+  static const length = 64.0;
+  static const width = 12.0;
+  static const transition = Duration(milliseconds: 400);
+  static const transitionCurve = Curves.easeOutQuint;
+
+  static final decoration = BoxDecoration(
+    color: Colors.grey[900],
+    borderRadius: BorderRadius.circular(8),
+  );
+
+  final bool top;
+  final bool left;
+  final bool show;
+
+  const DropZoneCorner(this.show, this.top, this.left, {Key? key})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    var pad = show ? padding : padding - 8;
+    var l = show ? length : 40.0;
+
+    return AnimatedPositioned(
+      duration: transition,
+      curve: transitionCurve,
+      top: top ? pad : null,
+      bottom: !top ? pad : null,
+      left: left ? pad : null,
+      right: !left ? pad : null,
+      child: AnimatedOpacity(
+        opacity: show ? 1 : 0,
+        duration: transition,
+        curve: transitionCurve,
+        child: Stack(
+          alignment: Alignment(left ? -1 : 1, top ? -1 : 1),
+          children: [
+            AnimatedContainer(
+              duration: transition,
+              curve: transitionCurve,
+              width: width,
+              height: l,
+              decoration: decoration,
+            ),
+            AnimatedContainer(
+              duration: transition,
+              curve: transitionCurve,
+              width: l,
+              height: width,
+              decoration: decoration,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
