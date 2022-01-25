@@ -10,6 +10,7 @@ import 'package:dart_vlc/dart_vlc.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 class LoadingDialog extends StatefulWidget {
@@ -124,6 +125,27 @@ class _HomePageState extends State<HomePage> {
         });
   }
 
+  void _handleKey(RawKeyEvent ev) {
+    if (ev is! RawKeyDownEvent) return;
+
+    switch (ev.logicalKey.keyLabel) {
+      case ' ':
+        if (!player.isPlaying && ctrl.clip != null) {
+          ctrl.startTime = ctrl.clip!.start;
+          player.playRegion(ctrl.clip!);
+        } else {
+          player.togglePlaying();
+        }
+        return;
+      case 'R':
+        if (ev.isControlPressed) _render();
+        return;
+      case 'O':
+        if (ev.isControlPressed) _openFileDialog();
+        return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     double videoAspectRatio = 1920 / 1080;
@@ -157,20 +179,7 @@ class _HomePageState extends State<HomePage> {
       ),
       body: RawKeyboardListener(
         autofocus: true,
-        onKey: (ev) {
-          switch (ev.character) {
-            case ' ':
-              if (!player.isPlaying && ctrl.clip != null) {
-                ctrl.startTime = ctrl.clip!.start;
-                player.playRegion(ctrl.clip!);
-              } else {
-                player.togglePlaying();
-              }
-              return;
-            case 'R':
-              return _render();
-          }
-        },
+        onKey: _handleKey,
         focusNode: FocusNode(),
         child: DropTarget(
           onDragDone: (details) {
