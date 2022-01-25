@@ -183,13 +183,13 @@ class _HomePageState extends State<HomePage> {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 Expanded(
-                  child: AspectRatio(
-                    aspectRatio: videoAspectRatio,
-                    child: Video(player: player.video, showControls: false),
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: videoAspectRatio,
+                      child: Video(player: player.video, showControls: false),
+                    ),
                   ),
                 ),
                 SizedBox(height: 8),
@@ -214,7 +214,7 @@ class Timeline extends StatefulWidget {
 
 class _TimelineState extends State<Timeline> {
   static const minVisibleLength = Duration(seconds: 1);
-  bool _dragRegionEnd = false;
+  int _dragRegionType = 0;
 
   // remove padding (hardcoded)
   double get _width => MediaQuery.of(context).size.width - 32;
@@ -232,27 +232,40 @@ class _TimelineState extends State<Timeline> {
     return player.duration! * frac;
   }
 
-  void _visibleRegion(double localX, bool hold) {
-    var time = _tapToDuration(localX);
-
+  void _visibleRegion(double localX, [double? delta]) {
     Region region = widget.controller.visible;
 
-    if (!hold) {
-      var diffStart = (time - region.start).abs();
-      var diffEnd = (time - region.end).abs();
-      _dragRegionEnd = diffEnd < diffStart;
+    if (delta == null) {
+      var startX = _durationToPixels(region.start);
+      var endX = _durationToPixels(region.end);
+      if ((startX - localX).abs() < 40) {
+        _dragRegionType = -1;
+      } else if ((endX - localX).abs() < 40) {
+        _dragRegionType = 1;
+      } else {
+        _dragRegionType = 0;
+      }
     }
 
-    if (_dragRegionEnd) {
+    if (_dragRegionType == 0) {
+      localX -= _durationToPixels(region.length) / 2;
+    }
+    var time = _tapToDuration(localX);
+
+    if (_dragRegionType > 0) {
       var limit = region.start + minVisibleLength;
       if (time < limit) time = limit;
       region.end = time;
-    } else {
+    } else if (_dragRegionType < 0) {
       var end = region.end;
       var limit = region.end - minVisibleLength;
       if (time > limit) time = limit;
       region.start = time;
       region.end = end;
+    } else {
+      var limitEnd = player.duration! - region.length;
+      if (time > limitEnd) time = limitEnd;
+      region.start = time;
     }
 
     setState(() {});
@@ -266,10 +279,10 @@ class _TimelineState extends State<Timeline> {
       children: [
         GestureDetector(
           onHorizontalDragDown: (details) {
-            _visibleRegion(details.localPosition.dx, false);
+            _visibleRegion(details.localPosition.dx);
           },
           onHorizontalDragUpdate: (details) {
-            _visibleRegion(details.localPosition.dx, true);
+            _visibleRegion(details.localPosition.dx, details.primaryDelta!);
           },
           child: Container(
             width: double.infinity,
@@ -432,7 +445,7 @@ class _StreamsWidgetState extends State<StreamsWidget> {
     return GestureDetector(
       onTapDown: (details) {
         var y = details.localPosition.dy;
-        if (y < 105) {
+        if (y < 104) {
           player.audio[0].muted = false;
           player.audio[1].muted = true;
         } else {
@@ -459,7 +472,7 @@ class _StreamsWidgetState extends State<StreamsWidget> {
           _time,
           widget.controller,
         ),
-        separatorBuilder: (ctx, i) => SizedBox(height: 16),
+        separatorBuilder: (ctx, i) => SizedBox(height: 8),
         itemCount: streams?.length ?? 0,
         shrinkWrap: true,
       ),
