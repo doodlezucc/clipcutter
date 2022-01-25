@@ -13,7 +13,10 @@ class MultiStreamPlayer {
   List<AudioPlayer> audio = [];
   Duration? get duration => analysis?.duration;
   Duration? _seekTime;
-  Timer? _timer;
+  Timer? _seekTimer;
+  Timer? _pauseTimer;
+
+  bool get isPlaying => video.playback.isPlaying;
 
   Future<void> open(String path, void Function(String) onProgress) async {
     restartAudio();
@@ -51,23 +54,32 @@ class MultiStreamPlayer {
     ];
   }
 
+  void playRegion(Region region) {
+    _forceSeek(region.start);
+    play();
+    _pauseTimer = Timer(region.length, () {
+      pause();
+      video.playbackController.add(v.PlaybackState()..isPlaying = false);
+      video.positionController.add(v.PositionState()
+        ..position = region.start
+        ..duration = null);
+      _seekTimer = Timer(Duration(milliseconds: 100), () {
+        _seekTimer = null;
+        _forceSeek(region.start);
+      });
+    });
+  }
+
   void play() {
+    _pauseTimer?.cancel();
     video.play();
     for (var a in audio) {
       a.play();
     }
   }
 
-  Future<void> playRegion(Region region) async {
-    _forceSeek(region.start);
-    play();
-    await Future.delayed(region.length);
-    pause();
-    video.playbackController.add(v.PlaybackState()..isPlaying = false);
-    _forceSeek(region.start);
-  }
-
   void pause() {
+    _pauseTimer?.cancel();
     video.pause();
     for (var a in audio) {
       a.pause();
@@ -85,10 +97,10 @@ class MultiStreamPlayer {
   void seek(Duration time) async {
     _seekTime = time;
 
-    if (_timer == null) {
+    if (_seekTimer == null) {
       _forceSeek(time);
-      _timer = Timer(Duration(milliseconds: 100), () {
-        _timer = null;
+      _seekTimer = Timer(Duration(milliseconds: 100), () {
+        _seekTimer = null;
         if (_seekTime != time) {
           seek(_seekTime!);
         }
@@ -106,8 +118,6 @@ class MultiStreamPlayer {
           time * (a.state.duration.inMilliseconds / duration!.inMilliseconds));
     }
   }
-
-  bool get isPlaying => video.playback.isPlaying;
 }
 
 class AudioPlayer extends a.Player {

@@ -133,6 +133,7 @@ class _StreamsWidgetState extends State<StreamsWidget> {
   void initState() {
     super.initState();
     _subs.add(player.video.playbackStream.listen(_onPlaybackChange));
+    _subs.add(player.video.positionStream.listen(_onPositionChange));
     _subs.add(frameStream.listen(_eachFrame));
   }
 
@@ -173,6 +174,14 @@ class _StreamsWidgetState extends State<StreamsWidget> {
         });
       }
     });
+  }
+
+  void _onPositionChange(PositionState state) {
+    if (state.position != null && state.duration == null) {
+      setState(() {
+        _time = state.position!;
+      });
+    }
   }
 
   // remove padding (hardcoded)
