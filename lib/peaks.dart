@@ -30,34 +30,39 @@ class MediaAnalysis {
       File file, void Function(String) onProgress) async {
     var path = file.path;
 
-    var json = await FFmpeg.collectJson(['-show_streams', path]);
-    Iterable streams = json['streams'];
+    try {
+      var json = await FFmpeg.collectJson(['-show_streams', path]);
+      Iterable streams = json['streams'];
 
-    var files = await extractStreams(file, streams);
-    var audioStreams = <AudioStream>[];
+      var files = await extractStreams(file, streams);
+      var audioStreams = <AudioStream>[];
 
-    for (var stream in streams) {
-      var isAudio = stream['codec_type'] == 'audio';
-      if (isAudio) {
-        int index = stream['index'];
-        onProgress('Analyzing audio stream $index...');
+      for (var stream in streams) {
+        var isAudio = stream['codec_type'] == 'audio';
+        if (isAudio) {
+          int index = stream['index'];
+          onProgress('Analyzing audio stream $index...');
 
-        var audio = files[index];
-        var rms = await analyzeAudio(audio);
-        audioStreams.add(AudioStream(stream, rms, audio));
+          var audio = files[index];
+          var rms = await analyzeAudio(audio);
+          audioStreams.add(AudioStream(stream, rms, audio));
+        }
       }
-    }
 
-    var sec = double.parse(streams.first['duration']);
-    var duration = Duration(milliseconds: (sec * 1000).toInt());
-    return MediaAnalysis(duration, audioStreams);
+      var sec = double.parse(streams.first['duration']);
+      var duration = Duration(milliseconds: (sec * 1000).toInt());
+      return MediaAnalysis(duration, audioStreams);
+    } on Exception catch (e) {
+      onProgress(e.toString());
+      rethrow;
+    }
   }
 
-  // old: 4067ms per 3 minutes
-  // new:  150ms per 3 minutes
   static Future<List<File>> extractStreams(File input, Iterable streams) async {
     var dir = Directory('tmp');
-    await dir.delete(recursive: true);
+    if (await dir.exists()) {
+      await dir.delete(recursive: true);
+    }
     await dir.create(recursive: true);
 
     var maps = [];
@@ -83,8 +88,6 @@ class MediaAnalysis {
     return files;
   }
 
-  // old: 4300ms per 3 minutes
-  // new:  680ms per 3 minutes
   static Future<List<double>> analyzeAudio(File file) async {
     var path = file.path;
 
