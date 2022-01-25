@@ -56,7 +56,9 @@ class MediaAnalysis {
   // old: 4067ms per 3 minutes
   // new:  150ms per 3 minutes
   static Future<List<File>> extractStreams(File input, Iterable streams) async {
-    await Directory('tmp').create(recursive: true);
+    var dir = Directory('tmp');
+    await dir.delete(recursive: true);
+    await dir.create(recursive: true);
 
     var maps = [];
     var files = <File>[];
