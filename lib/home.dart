@@ -77,16 +77,23 @@ class _HomePageState extends State<HomePage> {
 
     setState(() => _init = true);
 
-    ctrl.ready = false;
-    await player.open(path, sctrl.add);
-    ctrl.ready = true;
+    try {
+      ctrl.ready = false;
+      await player.open(path, sctrl.add);
+      ctrl.ready = true;
 
-    if (ctx != null) {
-      Navigator.pop(ctx!);
+      if (ctx != null) {
+        Navigator.pop(ctx!);
+      }
+      setState(() {
+        ctrl.visible = Region(Duration.zero, player.duration!);
+      });
+    } catch (e) {
+      setState(() {
+        analysis = null;
+        _init = false;
+      });
     }
-    setState(() {
-      ctrl.visible = Region(Duration.zero, player.duration!);
-    });
   }
 
   void _openFileDialog() async {

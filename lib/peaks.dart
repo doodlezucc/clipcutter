@@ -20,6 +20,12 @@ class AudioStream {
   }
 }
 
+class AnalysisException implements Exception {
+  final String message;
+
+  AnalysisException(this.message);
+}
+
 class MediaAnalysis {
   final Duration duration;
   final List<AudioStream> audioStreams;
@@ -52,7 +58,10 @@ class MediaAnalysis {
       var sec = double.parse(streams.first['duration']);
       var duration = Duration(milliseconds: (sec * 1000).toInt());
       return MediaAnalysis(duration, audioStreams);
-    } on Exception catch (e) {
+    } on AnalysisException catch (e) {
+      onProgress(e.message);
+      rethrow;
+    } catch (e) {
       onProgress(e.toString());
       rethrow;
     }
@@ -65,6 +74,7 @@ class MediaAnalysis {
     }
     await dir.create(recursive: true);
 
+    var audioStreams = 0;
     var maps = [];
     var files = <File>[];
 
@@ -75,7 +85,14 @@ class MediaAnalysis {
 
       if (stream['codec_type'] == 'audio') {
         maps.addAll(['-map', '0:$i', '-c', 'copy', file.path]);
+        audioStreams++;
       }
+    }
+
+    if (audioStreams == 0) {
+      throw AnalysisException('Source has no audio stream!');
+    } else if (audioStreams == streams.length) {
+      throw AnalysisException('Source has no video stream!');
     }
 
     await FFmpeg.collectLines([
