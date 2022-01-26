@@ -58,6 +58,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ctrl = TimelineController();
+  final focusNode = FocusNode();
   bool _dragDropping = false;
   bool _init = false;
 
@@ -159,6 +160,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    focusNode.requestFocus();
     double videoAspectRatio = 1920 / 1080;
 
     if (player.video.videoDimensions.width > 0) {
@@ -169,11 +171,16 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Clipcutter'),
-        leadingWidth: 120,
+        leadingWidth: 200,
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(width: 4),
+            IconButton(
+              onPressed: _openSettings,
+              icon: Icon(Icons.settings),
+              tooltip: 'Settings',
+            ),
             IconButton(
               onPressed: _openFileDialog,
               icon: Icon(Icons.folder),
@@ -186,19 +193,11 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            onPressed: _openSettings,
-            icon: Icon(Icons.settings),
-            tooltip: 'Settings',
-          ),
-          SizedBox(width: 4),
-        ],
       ),
       body: RawKeyboardListener(
         autofocus: true,
         onKey: _handleKey,
-        focusNode: FocusNode(),
+        focusNode: focusNode,
         child: DropTarget(
           onDragDone: (details) {
             setState(() => _dragDropping = false);
