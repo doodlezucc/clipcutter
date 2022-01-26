@@ -23,7 +23,11 @@ class FFmpeg {
     ]);
     var lines = <String>[];
     process.stdout.listen((data) {
-      var ls = utf8.decode(data).trim().split('\n');
+      var ls = utf8
+          .decode(data)
+          .split('\n')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty);
       lines.addAll(ls);
     });
     process.stderr.listen((data) {

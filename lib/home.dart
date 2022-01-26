@@ -94,6 +94,7 @@ class _HomePageState extends State<HomePage> {
         analysis = null;
         _init = false;
       });
+      rethrow;
     }
   }
 
