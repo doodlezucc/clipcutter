@@ -58,9 +58,22 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final ctrl = TimelineController();
-  final focusNode = FocusNode();
+  late FocusNode focusNode;
   bool _dragDropping = false;
   bool _init = false;
+  bool _showSettings = false;
+
+  @override
+  void initState() {
+    super.initState();
+    focusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    focusNode.dispose();
+    super.dispose();
+  }
 
   void _manualLoad(String path, {bool dialog = true}) async {
     ctrl.clip = null;
@@ -133,13 +146,15 @@ class _HomePageState extends State<HomePage> {
         });
   }
 
-  void _openSettings() {
+  void _openSettings() async {
+    setState(() => _showSettings = true);
     var route = MaterialPageRoute(builder: (ctx) => SettingsPage());
-    Navigator.of(context).push(route);
+    await Navigator.of(context).push(route);
+    setState(() => _showSettings = true);
   }
 
-  void _handleKey(RawKeyEvent ev) {
-    if (ev is! RawKeyDownEvent) return;
+  bool _handleKey(RawKeyEvent ev) {
+    if (ev is! RawKeyDownEvent || _showSettings) return false;
 
     switch (ev.logicalKey.keyLabel) {
       case ' ':
@@ -149,14 +164,15 @@ class _HomePageState extends State<HomePage> {
         } else {
           player.togglePlaying();
         }
-        return;
+        return true;
       case 'R':
         if (ev.isControlPressed) _render();
-        return;
+        return true;
       case 'O':
         if (ev.isControlPressed) _openFileDialog();
-        return;
+        return true;
     }
+    return false;
   }
 
   @override
@@ -195,10 +211,17 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: RawKeyboardListener(
+      body: Focus(
         autofocus: true,
-        onKey: _handleKey,
         focusNode: focusNode,
+        onKey: (_, ev) {
+          return _handleKey(ev)
+              ? KeyEventResult.handled
+              : KeyEventResult.ignored;
+        },
+        onFocusChange: (focus) {
+          if (!focus) focusNode.requestFocus();
+        },
         child: DropTarget(
           onDragDone: (details) {
             setState(() => _dragDropping = false);
