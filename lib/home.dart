@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:clipcutter/controls.dart';
@@ -135,12 +136,16 @@ class _HomePageState extends State<HomePage> {
           return AlertDialog(
             content: Text('Exported to $s'),
             actions: [
+              if (Platform.isWindows) ...[
+                TextButton(
+                  child: Text('Reveal In Explorer'),
+                  onPressed: () => openExplorer(s),
+                ),
+              ],
               TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                },
                 child: Text('OK'),
-              )
+                onPressed: () => Navigator.pop(ctx),
+              ),
             ],
           );
         });

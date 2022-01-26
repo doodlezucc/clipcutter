@@ -110,3 +110,14 @@ class FFmpeg {
     return output;
   }
 }
+
+Future<ProcessResult> openFile(String path) async {
+  Prefs.resetCWD();
+  return Process.run('start', [path], runInShell: true);
+}
+
+Future<ProcessResult> openExplorer(String select) async {
+  Prefs.resetCWD();
+  select = canonicalize(select);
+  return Process.run('explorer /select,"$select"', []);
+}
