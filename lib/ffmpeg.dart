@@ -73,7 +73,6 @@ class FFmpeg {
     if (result != null) {
       result = await render(timeline, result);
       Prefs.export = dirname(result);
-      Prefs.save();
       return result;
     }
   }

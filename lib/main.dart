@@ -38,6 +38,10 @@ class ClipCutterApp extends StatelessWidget {
       title: 'Clip Cutter',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        appBarTheme: AppBarTheme(
+          toolbarHeight: 48,
+          centerTitle: true,
+        ),
         textTheme: TextTheme(
           headline4: TextStyle(
             fontSize: 24,

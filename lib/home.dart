@@ -108,7 +108,6 @@ class _HomePageState extends State<HomePage> {
       var path = result.files.first.path!;
       _manualLoad(path);
       Prefs.import = p.dirname(path);
-      Prefs.save();
     }
   }
 
@@ -130,6 +129,11 @@ class _HomePageState extends State<HomePage> {
             ],
           );
         });
+  }
+
+  void _openSettings() {
+    var route = MaterialPageRoute(builder: (ctx) => SettingsPage());
+    Navigator.of(context).push(route);
   }
 
   void _handleKey(RawKeyEvent ev) {
@@ -165,15 +169,14 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Clipcutter'),
-        centerTitle: true,
-        leadingWidth: 80,
-        toolbarHeight: 48,
+        leadingWidth: 120,
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            SizedBox(width: 4),
             IconButton(
               onPressed: _openFileDialog,
-              icon: Icon(Icons.folder_open),
+              icon: Icon(Icons.folder),
               tooltip: 'Open Video',
             ),
             IconButton(
@@ -183,6 +186,14 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            onPressed: _openSettings,
+            icon: Icon(Icons.settings),
+            tooltip: 'Settings',
+          ),
+          SizedBox(width: 4),
+        ],
       ),
       body: RawKeyboardListener(
         autofocus: true,
