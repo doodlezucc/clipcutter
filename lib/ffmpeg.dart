@@ -126,14 +126,22 @@ class FFmpeg {
       if (includeVideo) 0,
     ];
 
+    var allAudioStreams = true;
     for (var audio in player.audio) {
       if (!audio.muted) {
         streamIndices.add(audio.stream!.json['index']);
+      } else {
+        allAudioStreams = false;
       }
     }
 
+    var useCodecCopy = allAudioStreams && includeVideo;
     var mapping = streamIndices.expand((index) {
-      return ['-map', '0:$index', '-c', 'copy'];
+      return [
+        '-map',
+        '0:$index',
+        if (useCodecCopy) ...['-c', 'copy'],
+      ];
     });
 
     var args = [
