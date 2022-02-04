@@ -86,14 +86,10 @@ class FFmpeg {
   }
 
   static Future<String?> renderDialog(TimelineController timeline) async {
-    var source = player.video.current.media!.resource;
-    var initialName = basenameWithoutExtension(source);
-
     var result = await FilePicker.platform.saveFile(
       dialogTitle: 'Export Clip',
       lockParentWindow: true,
       type: FileType.custom,
-      fileName: initialName,
       allowedExtensions: [...extAudio, ...extVideo],
       initialDirectory: Prefs.export,
     );
