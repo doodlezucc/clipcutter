@@ -144,6 +144,7 @@ class AudioPeaks extends StatefulWidget {
   final AudioStream stream;
   final Duration time;
   final TimelineController ctrl;
+  bool get isMuted => stream.aPlayer?.muted ?? true;
 
   const AudioPeaks(this.stream, this.time, this.ctrl, {Key? key})
       : super(key: key);
@@ -163,7 +164,7 @@ class _AudioPeaksState extends State<AudioPeaks> {
     return Container(
       height: 100,
       decoration: BoxDecoration(
-        color: isMuted ? mutedColor : defaultColor,
+        color: widget.isMuted ? mutedColor : defaultColor,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4)],
       ),
@@ -180,7 +181,7 @@ class _AudioPeaksState extends State<AudioPeaks> {
             clipBehavior: Clip.hardEdge,
             child: Material(
               child: IconButton(
-                icon: Icon(isMuted ? Icons.volume_off : Icons.volume_up),
+                icon: Icon(widget.isMuted ? Icons.volume_off : Icons.volume_up),
                 onPressed: () {
                   widget.ctrl.toggleMuteStream(widget.stream);
                 },
@@ -250,7 +251,10 @@ class PeakPainter extends CustomPainter {
   }
 
   void paintRegion(double start, double length, Canvas canvas, Size size) {
-    var pnt = Paint()..color = Colors.blue[300]!.withAlpha(150);
+    var pnt = Paint()
+      ..color = peaks.isMuted
+          ? Colors.blueGrey[400]!.withAlpha(150)
+          : Colors.blue[300]!.withAlpha(150);
     canvas.drawRect(
         Rect.fromLTWH(start * size.width, 0, length * size.width, size.height),
         pnt);
