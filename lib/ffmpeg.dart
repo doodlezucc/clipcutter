@@ -132,7 +132,9 @@ class FFmpeg {
       }
     }
 
-    var mapping = streamIndices.expand((index) => ['-map', '0:$index']);
+    var mapping = streamIndices.expand((index) {
+      return ['-map', '0:$index', '-c', 'copy'];
+    });
 
     var args = [
       '-ss',
