@@ -10,6 +10,24 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart';
 
 class FFmpeg {
+  static const extAudio = [
+    'aac',
+    'midi',
+    'mp3',
+    'ogg',
+    'wav',
+  ];
+  static const extVideo = [
+    'avi',
+    'flv',
+    'mkv',
+    'mov',
+    'mp4',
+    'mpeg',
+    'webm',
+    'wmv',
+  ];
+
   static Future<List<String>> collectLines(
     List<String> arguments, {
     bool useFFProbe = true,
@@ -68,30 +86,53 @@ class FFmpeg {
   }
 
   static Future<String?> renderDialog(TimelineController timeline) async {
+    var source = player.video.current.media!.resource;
+    var initialName = basenameWithoutExtension(source);
+
     var result = await FilePicker.platform.saveFile(
       dialogTitle: 'Export Clip',
       lockParentWindow: true,
-      type: FileType.audio,
+      type: FileType.custom,
+      fileName: initialName,
+      allowedExtensions: [...extAudio, ...extVideo],
       initialDirectory: Prefs.export,
     );
     if (result != null) {
-      result = await render(timeline, result);
+      var ext = extension(result);
+
+      if (ext.isEmpty) {
+        result += '.wav';
+      } else {
+        ext = ext.substring(1);
+      }
+
+      var includeVideo = extVideo.contains(ext);
+
+      await render(timeline, result, includeVideo: includeVideo);
       Prefs.export = dirname(result);
       return result;
     }
   }
 
-  static Future<String> render(
-      TimelineController timeline, String output) async {
+  static Future<void> render(
+    TimelineController timeline,
+    String output, {
+    bool includeVideo = false,
+  }) async {
     var region = timeline.clip;
     if (region == null) throw 'No region in timeline.';
 
-    if (extension(output).isEmpty) {
-      output += '.wav';
+    var streamIndices = <int>[
+      if (includeVideo) 0,
+    ];
+
+    for (var audio in player.audio) {
+      if (!audio.muted) {
+        streamIndices.add(audio.stream!.json['index']);
+      }
     }
 
-    var stream = player.audio.firstWhere((a) => !a.muted).stream!;
-    int streamIndex = stream.json['index'];
+    var mapping = streamIndices.expand((index) => ['-map', '0:$index']);
 
     var args = [
       '-ss',
@@ -100,14 +141,12 @@ class FFmpeg {
       '${region.end}',
       '-i',
       player.video.current.media!.resource,
-      '-map',
-      '0:$streamIndex',
+      ...mapping,
       '-y',
       output,
     ];
 
     await collectLines(args, useFFProbe: false);
-    return output;
   }
 }
 
