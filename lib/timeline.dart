@@ -25,6 +25,22 @@ class _TimelineState extends State<Timeline> {
   // remove padding (hardcoded)
   double get _width => MediaQuery.of(context).size.width - 32;
 
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onControllerUpdate);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerUpdate);
+    super.dispose();
+  }
+
+  void _onControllerUpdate() {
+    setState(() {});
+  }
+
   double _durationToPixels(Duration dur) {
     if (player.duration == null) return 0;
 
@@ -259,14 +275,6 @@ class _StreamsWidgetState extends State<StreamsWidget> {
 
     return GestureDetector(
       onTapDown: (details) {
-        var y = details.localPosition.dy;
-        if (y < 104) {
-          player.audio[0].muted = false;
-          player.audio[1].muted = true;
-        } else {
-          player.audio[0].muted = true;
-          player.audio[1].muted = false;
-        }
         _seekTap(details.localPosition.dx);
       },
       onHorizontalDragUpdate: (details) {

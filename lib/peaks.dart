@@ -13,6 +13,9 @@ class AudioStream {
   final Map json;
   final List<double> rms;
 
+  AudioPlayer? get aPlayer =>
+      player.audio.firstWhereOrNull((a) => a.stream == this);
+
   AudioStream(this.json, this.rms, this.tmpFile);
 
   Future<void> dispose() async {
@@ -150,21 +153,41 @@ class AudioPeaks extends StatefulWidget {
 }
 
 class _AudioPeaksState extends State<AudioPeaks> {
-  AudioPlayer? get aPlayer =>
-      player.audio.firstWhereOrNull((a) => a.stream == widget.stream);
+  static const defaultColor = Colors.white;
+  static final mutedColor = Colors.grey[400];
+
+  bool get isMuted => widget.stream.aPlayer?.muted ?? true;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 400,
       height: 100,
       decoration: BoxDecoration(
-        color: (aPlayer?.muted ?? true) ? Colors.grey[400] : Colors.white,
+        color: isMuted ? mutedColor : defaultColor,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4)],
       ),
+      clipBehavior: Clip.hardEdge,
       child: CustomPaint(
-        foregroundPainter: PeakPainter(widget),
+        painter: PeakPainter(widget),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(bottomRight: Radius.circular(8)),
+            ),
+            clipBehavior: Clip.hardEdge,
+            child: Material(
+              child: IconButton(
+                icon: Icon(isMuted ? Icons.volume_off : Icons.volume_up),
+                onPressed: () {
+                  widget.ctrl.toggleMuteStream(widget.stream);
+                },
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -209,7 +232,7 @@ class PeakPainter extends CustomPainter {
     var min = -96.0;
     var max = -0.0;
 
-    for (var x = 0.0; x < size.width; x += 4) {
+    for (var x = 2.0; x < size.width; x += 4) {
       var i = rms.length *
           div(visible.start + visible.length * (x / size.width), duration!);
       var mix = i % 1.0;
