@@ -127,21 +127,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _render() async {
-    var s = await FFmpeg.renderDialog(ctrl);
-    if (s == null) return;
+  void _postRenderDialog(
+    String title,
+    String content, [
+    List<Widget> moreActions = const [],
+  ]) {
     showDialog(
         context: context,
         builder: (ctx) {
           return AlertDialog(
-            content: Text('Exported to $s'),
+            title: Text(title),
+            content: Text(content),
             actions: [
-              if (Platform.isWindows) ...[
-                TextButton(
-                  child: Text('Reveal In Explorer'),
-                  onPressed: () => openExplorer(s),
-                ),
-              ],
+              ...moreActions,
               TextButton(
                 child: Text('OK'),
                 onPressed: () => Navigator.pop(ctx),
@@ -149,6 +147,22 @@ class _HomePageState extends State<HomePage> {
             ],
           );
         });
+  }
+
+  void _render() async {
+    try {
+      var s = await FFmpeg.renderDialog(ctrl);
+      if (s == null) return;
+      _postRenderDialog('Success', 'Exported to $s', [
+        if (Platform.isWindows)
+          TextButton(
+            child: Text('Reveal In Explorer'),
+            onPressed: () => openExplorer(s),
+          ),
+      ]);
+    } catch (e) {
+      _postRenderDialog('Error', '$e');
+    }
   }
 
   void _openSettings() async {
