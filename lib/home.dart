@@ -169,7 +169,7 @@ class _HomePageState extends State<HomePage> {
     setState(() => _showSettings = true);
     var route = MaterialPageRoute(builder: (ctx) => SettingsPage());
     await Navigator.of(context).push(route);
-    setState(() => _showSettings = true);
+    setState(() => _showSettings = false);
   }
 
   bool _handleKey(RawKeyEvent ev) {
@@ -239,7 +239,7 @@ class _HomePageState extends State<HomePage> {
               : KeyEventResult.ignored;
         },
         onFocusChange: (focus) {
-          if (!focus) focusNode.requestFocus();
+          if (!focus && mounted) focusNode.requestFocus();
         },
         child: DropTarget(
           onDragDone: (details) {
