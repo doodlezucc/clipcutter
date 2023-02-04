@@ -143,7 +143,8 @@ class AudioPlayer extends a.Player {
   void openStream(AudioStream stream) {
     _stream = stream;
 
-    var uri = 'file://' + absolute(stream.tmpFile.path);
+    var path = absolute(stream.tmpFile.path);
+    var uri = 'file://$path';
     open([a.Media(uri: uri)]);
   }
 }

@@ -83,10 +83,13 @@ class MediaAnalysis {
 
     for (var i = 0; i < streams.length; i++) {
       var stream = streams.elementAt(i);
-      var file = File('tmp/stream$i.' + stream['codec_name']);
+      var codecExtension = stream['codec_name'];
+      var codecType = stream['codec_type'];
+
+      var file = File('tmp/stream$i.$codecExtension');
       files.add(file);
 
-      if (stream['codec_type'] == 'audio') {
+      if (codecType == 'audio') {
         maps.addAll(['-map', '0:$i', '-c', 'copy', file.path]);
         audioStreams++;
       }
@@ -150,7 +153,7 @@ class AudioPeaks extends StatefulWidget {
       : super(key: key);
 
   @override
-  _AudioPeaksState createState() => _AudioPeaksState();
+  State<AudioPeaks> createState() => _AudioPeaksState();
 }
 
 class _AudioPeaksState extends State<AudioPeaks> {

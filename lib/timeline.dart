@@ -15,7 +15,7 @@ class Timeline extends StatefulWidget {
   const Timeline(this.controller, {Key? key}) : super(key: key);
 
   @override
-  _TimelineState createState() => _TimelineState();
+  State<Timeline> createState() => _TimelineState();
 }
 
 class _TimelineState extends State<Timeline> {
@@ -136,7 +136,7 @@ class StreamsWidget extends StatefulWidget {
   const StreamsWidget(this.controller, {Key? key}) : super(key: key);
 
   @override
-  _StreamsWidgetState createState() => _StreamsWidgetState();
+  State<StreamsWidget> createState() => _StreamsWidgetState();
 }
 
 class _StreamsWidgetState extends State<StreamsWidget> {
@@ -169,7 +169,7 @@ class _StreamsWidgetState extends State<StreamsWidget> {
       setState(() {
         var diff = timestamp - widget.controller.startTimestamp!;
         _time = widget.controller.startTime! + diff;
-        SchedulerBinding.instance!.scheduleFrame();
+        SchedulerBinding.instance.scheduleFrame();
       });
     }
   }

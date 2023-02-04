@@ -108,6 +108,8 @@ class FFmpeg {
       Prefs.export = dirname(result);
       return result;
     }
+
+    return null;
   }
 
   static Future<void> render(

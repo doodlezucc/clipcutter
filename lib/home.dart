@@ -21,7 +21,7 @@ class LoadingDialog extends StatefulWidget {
   const LoadingDialog(this.srcName, this.stream, {Key? key}) : super(key: key);
 
   @override
-  _LoadingDialogState createState() => _LoadingDialogState();
+  State<LoadingDialog> createState() => _LoadingDialogState();
 }
 
 class _LoadingDialogState extends State<LoadingDialog> {

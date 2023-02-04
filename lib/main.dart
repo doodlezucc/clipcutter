@@ -21,7 +21,7 @@ void main() {
   a.LWM.initialize();
   Prefs.load();
   runApp(const ClipCutterApp());
-  SchedulerBinding.instance!
+  SchedulerBinding.instance
       .addPersistentFrameCallback((ts) => _frameCtrl.add(ts));
 }
 
